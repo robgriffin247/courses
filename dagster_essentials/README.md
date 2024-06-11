@@ -24,6 +24,8 @@ Material from the [Dagster Essentials](https://courses.dagster.io/courses/take/d
 
 ## Lesson 2: Prequisites & setup
 
+*If using git, add both `de_env` and `dagster_university/data/` to the `.gitignore`.*
+
 1. Create a virtual environment called `de_env` (`de` = Dagster Essentials)
 1. Activate `de_env`
 1. Install Dagster
@@ -44,7 +46,8 @@ pip install -e ".[dev]"
 dagster dev
 ```
 
-This creates two module &mdash; `dagster_university` and `dagster_university_tests`. The `dagster_university` module contains the code needed for the Dagster project, and further modules of `assets`, `jobs`, `partitions`, `resources`, `schedules`, and `sensors`. The `assets` module also contains some files needed for the course material (`constants,py`, `metrics.py` and `trips.py`).
+This creates two module &mdash; `dagster_university` and `dagster_university_tests`. The `dagster_university` module contains the code needed for the Dagster project, and further modules of `assets`, `jobs`, `partitions`, `resources`, `schedules`, and `sensors`. The `assets` module also contains some files needed for the course material (`constants,py`, `metrics.py` and `trips.py`). 
+
 
 ```
 dagster_university
@@ -106,3 +109,65 @@ dagster_university
 1. Go to assets > view global asset lineage
 
 1. Materialize the assets and confirm files are in `data/`
+
+## Lesson 4: Asset dependencis
+
+- Dependencies are used as project is expanded in a pipeline because assets will naturally need other assets to exist before they can be materialized
+- Upstream assets have assets that rely on them, downstream assets rely on other assets
+
+1. Create assets that load data into DuckDB and depend on the `taxi_trips_file` and `taxi_zones_file` assets
+
+    ```python
+    # Adding to trips.py...
+    import duckdb
+    import os
+
+    @asset(
+        deps=["taxi_trips_file"]
+    )
+    def taxi_trips() -> None:
+        """
+        The raw taxi trips dataset, loaded into a DuckDB database
+        """
+        sql_query = """
+            create or replace table trips as (
+            select
+                VendorID as vendor_id,
+                PULocationID as pickup_zone_id,
+                DOLocationID as dropoff_zone_id,
+                RatecodeID as rate_code_id,
+                payment_type as payment_type,
+                tpep_dropoff_datetime as dropoff_datetime,
+                tpep_pickup_datetime as pickup_datetime,
+                trip_distance as trip_distance,
+                passenger_count as passenger_count,
+                total_amount as total_amount
+            from 'data/raw/taxi_trips_2023-03.parquet'
+            );
+        """
+        with duckdb.connect(os.getenv("DUCKDB_DATABASE")) as conn:
+            conn.execute(sql_query)
+        
+    @asset(
+        deps=["taxi_zones_file"]
+    )
+    def taxi_zones() -> None:
+        """
+        The raw taxi zones dataset, loaded into a DuckDB database
+        """
+        sql_query = f"""
+            create or replace table trips as (
+            select
+                LocationID as zone_id,
+                Zone as zone,
+                Borough as borough,
+                the_geom as geom
+            from '{constants.TAXI_ZONES_FILE_PATH}'
+            );
+        """
+        with duckdb.connect(os.getenv("DUCKDB_DATABASE")) as conn:
+            conn.execute(sql_query)
+    ```
+
+1. Materialize the datasets into the database
+
