@@ -30,7 +30,7 @@ Material from the [Dagster Essentials](https://courses.dagster.io/courses/take/d
 1. Create the Dagster project from the pre-built example
 1. Setup the default environment variables
 1. Install the dependencies
-1. Spin up a Dagster webserver
+1. Start the Dagster UI
 1. Check [the instance via a browser]()
 
 ```bash
@@ -46,8 +46,8 @@ dagster dev
 
 This creates two module &mdash; `dagster_university` and `dagster_university_tests`. The `dagster_university` module contains the code needed for the Dagster project, and further modules of `assets`, `jobs`, `partitions`, `resources`, `schedules`, and `sensors`. The `assets` module also contains some files needed for the course material (`constants,py`, `metrics.py` and `trips.py`).
 
-```bash
-.
+```
+dagster_university
 ├── __init__.py
 ├── assets
 │   ├── __init__.py
@@ -63,3 +63,46 @@ This creates two module &mdash; `dagster_university` and `dagster_university_tes
 
 ## Lesson 3: Software-defined assets
 
+- Assets are objects like data tables and views, files, ml models or dbt models (and more)
+- Dagster uses software-defined assets as the building block
+- Assets are defined using the `@asset` decorator on a function that produces the object
+- Assets have an asset key (name; defaults to the name of the function) and upstream dependencies (referenced by asset keys)
+
+
+1. Define two assets in `assets/trips.py`
+
+    ```python
+    import requests
+    from . import constants
+    from dagster import asset
+
+    @asset
+    def taxi_trips_file() -> None:
+        """Raw parquet files for taxi trips"""
+        month_to_fetch = "2023-03"
+        response = requests.get(f"https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_{month_to_fetch}.parquet")
+
+        with open(constants.TAXI_TRIPS_TEMPLATE_FILE_PATH.format(month_to_fetch), "wb") as f:
+            f.write(response.content)
+
+    @asset
+    def taxi_zones_file() -> None:
+        """Raw parquet files for taxi zones"""
+        response = requests.get("https://data.cityofnewyork.us/api/views/755u-8jsi/rows.csv?accessType=DOWNLOAD")
+
+        with open(constants.TAXI_ZONES_FILE_PATH, "wb") as f:
+            f.write(response.content)
+    ```
+
+    Comment string provides a description parsed in the Dagster UI.
+
+1. Start the Dagster UI
+
+    ```bash
+    # from the dagster_university module
+    dagster dev
+    ```
+
+1. Go to assets > view global asset lineage
+
+1. Materialize the assets and confirm files are in `data/`
