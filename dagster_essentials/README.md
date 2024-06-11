@@ -24,3 +24,42 @@ Material from the [Dagster Essentials](https://courses.dagster.io/courses/take/d
 
 ## Lesson 2: Prequisites & setup
 
+1. Create a virtual environment called `de_env` (`de` = Dagster Essentials)
+1. Activate `de_env`
+1. Install Dagster
+1. Create the Dagster project from the pre-built example
+1. Setup the default environment variables
+1. Install the dependencies
+1. Spin up a Dagster webserver
+1. Check [the instance via a browser]()
+
+```bash
+python3 -m venv de_env
+source de_env/bin/activate
+pip install 'dagster~=1.7'
+dagster project from-example --example project_dagster_university_start --name dagster_university
+cd dagster_university
+cp .env.example .env
+pip install -e ".[dev]"
+dagster dev
+```
+
+This creates two module &mdash; `dagster_university` and `dagster_university_tests`. The `dagster_university` module contains the code needed for the Dagster project, and further modules of `assets`, `jobs`, `partitions`, `resources`, `schedules`, and `sensors`. The `assets` module also contains some files needed for the course material (`constants,py`, `metrics.py` and `trips.py`).
+
+```bash
+.
+├── __init__.py
+├── assets
+│   ├── __init__.py
+│   ├── constants.py
+│   ├── metrics.py
+│   └── trips.py
+├── jobs
+├── partitions
+├── resources
+├── schedules
+└── sensors
+```
+
+## Lesson 3: Software-defined assets
+
